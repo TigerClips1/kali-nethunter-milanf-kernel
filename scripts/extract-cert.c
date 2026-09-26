@@ -120,8 +120,8 @@ int main(int argc, char **argv)
 		ERR(!f, "%s", cert_dst);
 		fclose(f);
 		exit(0);
-	} else if (!strncmp(cert_src, "pkcs11:", 7)) {
-#if defined(OPENSSL_IS_BORINGSSL) || OPENSSL_VERSION_NUMBER >= 0x40000000L
+	} else if (0 && !strncmp(cert_src, "pkcs11:", 7)) {
+#ifdef OPENSSL_IS_BORINGSSL
 		ERR(1, "BoringSSL does not support extracting from PKCS#11");
 		exit(1);
 #else

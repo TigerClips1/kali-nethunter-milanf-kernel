@@ -1920,13 +1920,24 @@ int do_execve_file(struct file *file, void *__argv, void *__envp)
 	return __do_execve_file(AT_FDCWD, NULL, argv, envp, 0, file);
 }
 
+#ifdef CONFIG_KSU
+__attribute__((hot))
+extern int ksu_handle_execveat(int *fd, struct filename **filename_ptr,
+				void *argv, void *envp, int *flags);
+#endif
+
 int do_execve(struct filename *filename,
 	const char __user *const __user *__argv,
 	const char __user *const __user *__envp)
 {
+	int fd = AT_FDCWD;
+	int flags = 0;
 	struct user_arg_ptr argv = { .ptr.native = __argv };
 	struct user_arg_ptr envp = { .ptr.native = __envp };
-	return do_execveat_common(AT_FDCWD, filename, argv, envp, 0);
+#ifdef CONFIG_KSU
+	ksu_handle_execveat(&fd, &filename, &argv, &envp, &flags);
+#endif
+	return do_execveat_common(fd, filename, argv, envp, flags);
 }
 
 int do_execveat(int fd, struct filename *filename,
@@ -1936,7 +1947,9 @@ int do_execveat(int fd, struct filename *filename,
 {
 	struct user_arg_ptr argv = { .ptr.native = __argv };
 	struct user_arg_ptr envp = { .ptr.native = __envp };
-
+#ifdef CONFIG_KSU
+	ksu_handle_execveat(&fd, &filename, &argv, &envp, &flags);
+#endif
 	return do_execveat_common(fd, filename, argv, envp, flags);
 }
 
@@ -1953,7 +1966,12 @@ static int compat_do_execve(struct filename *filename,
 		.is_compat = true,
 		.ptr.compat = __envp,
 	};
-	return do_execveat_common(AT_FDCWD, filename, argv, envp, 0);
+	int fd = AT_FDCWD;
+	int flags = 0;
+#ifdef CONFIG_KSU
+	ksu_handle_execveat(&fd, &filename, &argv, &envp, &flags);
+#endif
+	return do_execveat_common(fd, filename, argv, envp, flags);
 }
 
 static int compat_do_execveat(int fd, struct filename *filename,
@@ -1969,6 +1987,9 @@ static int compat_do_execveat(int fd, struct filename *filename,
 		.is_compat = true,
 		.ptr.compat = __envp,
 	};
+#ifdef CONFIG_KSU
+	ksu_handle_execveat(&fd, &filename, &argv, &envp, &flags);
+#endif
 	return do_execveat_common(fd, filename, argv, envp, flags);
 }
 #endif
